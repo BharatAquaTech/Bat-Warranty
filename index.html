@@ -500,38 +500,72 @@ async function onSignedIn(){
   updateSyncUI();
 }
 
-function initGoogle(){
+let tokenExpiryTimer = null;
+
+function scheduleSilentRefresh(expiresInSeconds){
+  if(tokenExpiryTimer) clearTimeout(tokenExpiryTimer);
+  const seconds = (expiresInSeconds && expiresInSeconds > 360) ? expiresInSeconds - 300 : 3300;
+  tokenExpiryTimer = setTimeout(()=>{
+    if(tokenClient) tokenClient.requestAccessToken({ prompt: '' });
+  }, seconds * 1000);
+}
+
+function initGoogle(silent){
   const clientId = $("clientId").value.trim();
   if(!clientId || !window.google) return;
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: clientId,
     scope: DRIVE_SCOPE,
     callback: async (resp) => {
-      if(resp.error){ setStatus("Sign-in failed: " + resp.error, true); return; }
+      if(resp.error){
+        if(!silent){ setStatus("Sign-in failed: " + resp.error, true); }
+        else{ localStorage.removeItem('bat_auto_signin'); updateSyncUI(); }
+        return;
+      }
       accessToken = resp.access_token;
+      scheduleSilentRefresh(resp.expires_in);
       try{
         const infoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers: driveHeaders() });
         const info = await infoRes.json();
         userEmail = info.email || "Google account";
       }catch(e){ userEmail = "Google account"; }
       localStorage.setItem('bat_client_id', clientId);
+      localStorage.setItem('bat_auto_signin', '1');
       updateSyncUI();
       await onSignedIn();
     }
   });
+  if(silent){ tokenClient.requestAccessToken({ prompt: '' }); }
 }
 
 $("signBtn").addEventListener("click", ()=>{
   if(accessToken){
     accessToken = null; userEmail = null; driveFileId = null;
+    if(tokenExpiryTimer) clearTimeout(tokenExpiryTimer);
+    localStorage.removeItem('bat_auto_signin');
     updateSyncUI(); setStatus("Signed out. Cards remain saved on this device.");
     return;
   }
   const clientId = $("clientId").value.trim();
   if(!clientId){ setStatus("Paste your Google OAuth Client ID above first.", true); return; }
-  initGoogle();
+  initGoogle(false);
   if(tokenClient){ tokenClient.requestAccessToken(); }
 });
+
+function waitForGoogle(cb, attemptsLeft){
+  attemptsLeft = attemptsLeft === undefined ? 40 : attemptsLeft;
+  if(window.google && google.accounts && google.accounts.oauth2){ cb(); return; }
+  if(attemptsLeft <= 0) return;
+  setTimeout(()=> waitForGoogle(cb, attemptsLeft - 1), 150);
+}
+
+function tryAutoSignIn(){
+  const clientId = localStorage.getItem('bat_client_id');
+  const auto = localStorage.getItem('bat_auto_signin');
+  if(!clientId || !auto) return;
+  $("clientId").value = clientId;
+  waitForGoogle(()=> initGoogle(true));
+}
 
 $("clientId").addEventListener("change", ()=>{
   localStorage.setItem('bat_client_id', $("clientId").value.trim());
@@ -565,6 +599,7 @@ updateSyncUI();
 
 const savedClientId = localStorage.getItem('bat_client_id');
 if(savedClientId){ $("clientId").value = savedClientId; }
+tryAutoSignIn();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
