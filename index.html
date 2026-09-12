@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BAT Warranty</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#00173A">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --ink:#00173A; --teal:#0E5C93; --aqua:#1183C9; --brass:#C9A227;
+    --paper:#F6F4EF; --paper-2:#FFFFFF; --line:#D8D2C4; --muted:#5B6B72; --danger:#B3452C; --ok:#3E7A2C;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'IBM Plex Sans', sans-serif; background:var(--paper); color:var(--ink); padding:16px; padding-bottom:60px;}
+  h1,h2,h3{font-family:'Source Serif 4', serif; margin:0;}
+  .app{max-width:1280px; margin:0 auto; display:grid; grid-template-columns: 380px 1fr; gap:24px; align-items:start;}
+  @media (max-width: 900px){ .app{grid-template-columns: 1fr;} body{padding:12px;} }
+
+  .topbar{grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--ink); padding-bottom:12px; margin-bottom:4px; flex-wrap:wrap; gap:10px;}
+  .topbar h1{font-size:19px; font-weight:600;}
+  .topbar p{margin:2px 0 0; font-size:12px; color:var(--muted);}
+
+  .sync-box{display:flex; align-items:center; gap:8px; font-size:12px;}
+  .sync-dot{width:8px; height:8px; border-radius:50%; background:var(--danger); flex-shrink:0;}
+  .sync-dot.on{background:var(--ok);}
+  .sync-btn{
+    padding:7px 12px; border-radius:4px; border:1px solid var(--ink); background:var(--ink); color:#fff;
+    font-size:12px; font-weight:600; cursor:pointer;
+  }
+  .sync-btn.signed{background:#fff; color:var(--ink);}
+
+  .panel{background:var(--paper-2); border:1px solid var(--line); border-radius:6px; padding:18px;}
+  .panel h2{font-size:14px; font-weight:600; margin-bottom:12px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:11px; color:var(--muted); margin-bottom:4px; font-weight:500;}
+  .field input, .field select, .field textarea{
+    width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:4px;
+    font-family:'IBM Plex Sans', sans-serif; font-size:13.5px; background:#fff; color:var(--ink);
+  }
+  .field textarea{resize:vertical; min-height:44px;}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--aqua); outline-offset:0; border-color:var(--aqua);}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .seg{display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--line); border-radius:4px; overflow:hidden;}
+  .seg button{padding:9px 6px; border:none; background:#fff; font-size:12.5px; font-weight:500; color:var(--muted); cursor:pointer; border-right:1px solid var(--line); border-bottom:1px solid var(--line);}
+  .seg button:nth-child(2n){border-right:none;} .seg button:nth-child(n+3){border-bottom:none;}
+  .seg button.active{background:var(--teal); color:#fff;}
+  .inline-btn{display:flex; gap:8px;} .inline-btn input{flex:1;}
+  .smallbtn{padding:8px 10px; border:1px solid var(--teal); background:#fff; color:var(--teal); border-radius:4px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;}
+  .smallbtn:hover{background:var(--teal); color:#fff;}
+  .actions{display:flex; gap:10px; margin-top:16px;}
+  .btn{flex:1; padding:11px 12px; border-radius:4px; font-size:13.5px; font-weight:600; cursor:pointer; border:none;}
+  .btn-primary{background:var(--ink); color:#fff;} .btn-primary:hover{background:var(--teal);}
+  .btn-ghost{background:#fff; border:1px solid var(--line); color:var(--ink);} .btn-ghost:hover{border-color:var(--ink);}
+  .status{margin-top:10px; font-size:12px; color:var(--teal); min-height:16px;}
+  .hint{font-size:10.5px; color:var(--muted); margin-top:4px; line-height:1.4;}
+  .divider{border:none; border-top:1px solid var(--line); margin:16px 0;}
+
+  details.settings{margin-bottom:16px; border:1px solid var(--line); border-radius:4px; padding:10px 12px; background:var(--paper);}
+  details.settings summary{cursor:pointer; font-size:12.5px; font-weight:600; color:var(--teal);}
+  details.settings .field{margin-top:10px; margin-bottom:0;}
+
+  .preview-wrap{display:flex; flex-direction:column; gap:18px;}
+  .card-stage{background:#EDEAE2; border-radius:6px; padding:24px; display:flex; justify-content:center;}
+  .card{width:720px; max-width:100%; background:var(--paper-2); border:1px solid var(--line); position:relative; box-shadow:0 10px 30px rgba(14,44,61,0.12);}
+  .card-band{height:8px; background:linear-gradient(90deg, var(--teal), var(--aqua));}
+  .card-inner{padding:24px 26px 20px; display:grid; grid-template-columns:1fr auto; gap:18px;}
+  .card-head{grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line); padding-bottom:12px; margin-bottom:14px;}
+  .brand img{height:42px; width:auto; display:block;}
+  .card-title{text-align:right;}
+  .card-title .kicker{font-size:10px; letter-spacing:0.4px; color:var(--brass); font-weight:600;}
+  .card-title h2{font-size:19px; margin-top:2px;}
+  .grid{grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; gap:12px 24px;}
+  .grid-full{grid-column:1/-1;}
+  .kv label{display:block; font-size:9.5px; letter-spacing:0.3px; color:var(--muted); margin-bottom:2px;}
+  .kv .val{font-size:14px; font-weight:500; color:var(--ink); min-height:18px; border-bottom:1px dotted var(--line); padding-bottom:3px;}
+  .kv .val.mono{font-family:'IBM Plex Mono', monospace; font-weight:600; letter-spacing:0.5px;}
+  .warranty-strip{grid-column:1/-1; margin-top:16px; padding:12px 14px; background:var(--paper); border:1px solid var(--line); border-radius:4px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
+  .warranty-strip .period{font-family:'Source Serif 4', serif; font-size:14px;}
+  .warranty-strip .period b{color:var(--teal);}
+  .seal{display:flex; align-items:center; gap:7px; color:var(--brass); font-size:10px; font-weight:600; letter-spacing:0.3px; text-align:right;}
+  .seal svg{width:30px; height:30px; flex-shrink:0;}
+  .tnc{grid-column:1/-1; margin-top:16px;}
+  .tnc h3{font-size:10.5px; letter-spacing:0.3px; color:var(--teal); font-weight:600; margin-bottom:6px;}
+  .tnc ul{margin:0; padding-left:16px; font-size:9.5px; color:var(--muted); line-height:1.6;}
+  .card-foot{grid-column:1/-1; margin-top:16px; padding-top:12px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:18px; flex-wrap:wrap;}
+  .foot-note{font-size:9.5px; color:var(--muted); font-style:italic; max-width:400px;}
+  .foot-issuer{text-align:right; font-size:10.5px; color:var(--ink); font-weight:600;}
+  .foot-issuer .sub{font-weight:400; color:var(--muted); font-size:9.5px; margin-top:2px;}
+  .wave{position:absolute; bottom:0; left:0; right:0; height:14px; opacity:0.5;}
+
+  .log-panel{background:var(--paper-2); border:1px solid var(--line); border-radius:6px; padding:16px 18px;}
+  .log-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:10px; flex-wrap:wrap;}
+  .log-head h2{font-size:14px; font-weight:600;}
+  .log-search{padding:6px 10px; border:1px solid var(--line); border-radius:4px; font-size:12.5px; width:180px;}
+  table{width:100%; border-collapse:collapse; font-size:12px;}
+  th{text-align:left; font-size:10px; color:var(--muted); font-weight:600; border-bottom:1px solid var(--line); padding:6px 6px;}
+  td{padding:7px 6px; border-bottom:1px solid #EFECE4;}
+  tr.rowbtn{cursor:pointer;} tr.rowbtn:hover{background:var(--paper);}
+  .empty{color:var(--muted); font-size:12.5px; padding:10px 4px;}
+  .tag{display:inline-block; font-size:9.5px; font-weight:600; padding:2px 7px; border-radius:10px;}
+  .tag.dom{background:#E6F2F2; color:var(--teal);} .tag.com{background:#F3EAD3; color:#8A6A16;}
+  .tag.spa{background:#EFE7F3; color:#6B3E8E;} .tag.amc{background:#E9F3E3; color:#3E7A2C;}
+
+  @media print{
+    body{padding:0; background:#fff;}
+    .app{display:block;}
+    .topbar, .panel, .log-panel{display:none !important;}
+    .card-stage{background:#fff; padding:0;}
+    .card{box-shadow:none; width:100%; border:1px solid #999;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1>BAT Warranty</h1>
+      <p>Bharat Aqua Tech — warranty &amp; AMC cards</p>
+    </div>
+    <div class="sync-box">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncLabel">Not signed in — saving on this device only</span>
+      <button class="sync-btn" id="signBtn">Sign in with Google</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <details class="settings">
+      <summary>Google Drive setup</summary>
+      <div class="field">
+        <label>Google OAuth Client ID</label>
+        <input type="text" id="clientId" placeholder="xxxxxxxxxx.apps.googleusercontent.com">
+        <div class="hint">One-time setup from Google Cloud Console. Paste your Client ID here, then tap "Sign in with Google" above. This is saved only on this device.</div>
+      </div>
+    </details>
+
+    <h2>Card details</h2>
+
+    <div class="field">
+      <label>Category</label>
+      <div class="seg" id="categorySeg">
+        <button type="button" data-cat="Domestic RO" class="active">Domestic RO</button>
+        <button type="button" data-cat="Commercial RO">Commercial RO</button>
+        <button type="button" data-cat="Spares">Spares</button>
+        <button type="button" data-cat="AMC">AMC</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label id="modelLabel">Model</label>
+      <input type="text" id="modelText" placeholder="e.g. Orca, Dolphin, Iris, Canix">
+      <select id="modelSelect" style="display:none;"></select>
+    </div>
+
+    <div class="field"><label>Customer name</label><input type="text" id="customerName" placeholder="e.g. Rakesh Patel"></div>
+
+    <div class="row2">
+      <div class="field"><label>Phone</label><input type="text" id="phone" placeholder="98xxxxxxxx"></div>
+      <div class="field"><label id="invoiceLabel">Invoice / Bill no.</label><input type="text" id="invoiceNo" placeholder="INV-0042"></div>
+    </div>
+
+    <div class="field"><label>Address</label><textarea id="address" placeholder="Installation address"></textarea></div>
+
+    <div class="row2">
+      <div class="field"><label id="dateLabel">Purchase / installation date</label><input type="date" id="purchaseDate"></div>
+      <div class="field"><label id="durationLabel">Warranty period</label><select id="duration"></select></div>
+    </div>
+
+    <div class="field">
+      <label id="serialLabel">Serial number</label>
+      <div class="inline-btn"><input type="text" id="serial" placeholder="Auto-generate or enter manually"><button class="smallbtn" id="genSerial" type="button">Generate</button></div>
+    </div>
+
+    <div class="field" id="amcAmountField" style="display:none;">
+      <label>AMC amount charged (₹)</label>
+      <input type="text" id="amcAmount" placeholder="e.g. 3500">
+      <div class="hint">This AMC covers all parts and components of the RO system for the contract period.</div>
+    </div>
+
+    <div class="field"><label>Dealer / issued by</label><input type="text" id="dealer" value="Bharat Aqua Tech, Gadodara, Surat"></div>
+
+    <hr class="divider">
+
+    <div class="field">
+      <label>Terms &amp; conditions (one point per line — shown on the card)</label>
+      <textarea id="tnc" style="min-height:110px;"></textarea>
+      <div class="hint">Edit freely — this wording stays for every card until you change it.</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="saveBtn">Save to log</button>
+      <button class="btn btn-ghost" id="printBtn">Print card</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="preview-wrap">
+    <div class="card-stage">
+      <div class="card" id="card">
+        <div class="card-band"></div>
+        <div class="card-inner">
+          <div class="card-head">
+            <div class="brand"><img src="logo.png" alt="Bharat Aqua Tech logo"></div>
+            <div class="card-title"><div class="kicker" id="c-kicker">CERTIFICATE OF</div><h2 id="c-title">Warranty</h2></div>
+          </div>
+          <div class="grid">
+            <div class="kv"><label>Customer name</label><div class="val" id="c-name">—</div></div>
+            <div class="kv"><label>Phone</label><div class="val" id="c-phone">—</div></div>
+            <div class="kv grid-full"><label>Installation / service address</label><div class="val" id="c-address">—</div></div>
+            <div class="kv"><label>Product category</label><div class="val" id="c-cat">—</div></div>
+            <div class="kv"><label id="c-model-label">Model</label><div class="val" id="c-model">—</div></div>
+            <div class="kv"><label id="c-serial-label">Serial number</label><div class="val mono" id="c-serial">—</div></div>
+            <div class="kv"><label id="c-invoice-label">Invoice no.</label><div class="val" id="c-invoice">—</div></div>
+            <div class="kv"><label id="c-date-label">Purchase / install date</label><div class="val" id="c-pdate">—</div></div>
+            <div class="kv" id="c-amc-row" style="display:none;"><label>AMC amount charged</label><div class="val" id="c-amc-amount">—</div></div>
+          </div>
+          <div class="warranty-strip">
+            <div class="period" id="c-period">Valid from <b id="c-start">—</b> to <b id="c-end">—</b></div>
+            <div class="seal">
+              <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="20" cy="20" r="12" fill="none" stroke="currentColor" stroke-width="1"/><text x="20" y="24" text-anchor="middle" font-size="8" fill="currentColor" font-family="IBM Plex Sans">✓</text></svg>
+              <span id="c-seal-text">GENUINE PART GUARANTEE</span>
+            </div>
+          </div>
+          <div class="tnc"><h3>Terms &amp; conditions</h3><ul id="c-tnc-list"></ul></div>
+          <div class="card-foot">
+            <div class="foot-note">This is a computer-generated card and does not require a signature.</div>
+            <div class="foot-issuer"><div id="c-dealer">Bharat Aqua Tech, Gadodara, Surat</div><div class="sub">Pure water, better life</div></div>
+          </div>
+        </div>
+        <svg class="wave" viewBox="0 0 720 16" preserveAspectRatio="none"><path d="M0,8 C60,16 120,0 180,8 C240,16 300,0 360,8 C420,16 480,0 540,8 C600,16 660,0 720,8 L720,16 L0,16 Z" fill="#1183C9"/></svg>
+      </div>
+    </div>
+
+    <div class="log-panel">
+      <div class="log-head"><h2>Issued cards</h2><input class="log-search" id="search" placeholder="Search name or serial…"></div>
+      <table><thead><tr><th>Serial</th><th>Customer</th><th>Category / model</th><th>Issued</th><th>Expires</th></tr></thead><tbody id="logBody"></tbody></table>
+      <div class="empty" id="logEmpty" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DRIVE_FILE_NAME = "bharat-aqua-warranty-log.json";
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+
+const COMMERCIAL_MODELS = ["25 LPH", "50 LPH", "100 LPH", "Orium"];
+const DURATIONS = {
+  "Domestic RO": [[12,"1 year (standard)"],[24,"2 years"],[36,"3 years"]],
+  "Commercial RO": [[12,"1 year (standard)"],[24,"2 years"],[36,"3 years"]],
+  "Spares": [[3,"3 months"],[6,"6 months"],[12,"1 year"]],
+  "AMC": [[12,"1 year"],[24,"2 years"],[36,"3 years"]]
+};
+const DEFAULT_TNC = {
+  "Domestic RO": ["Warranty covers manufacturing defects in electronic components only.","Excludes filters, membranes and other consumables.","Does not cover physical damage or issues from unauthorised repair.","Damage from voltage fluctuation or unstable water supply is not covered.","Present this card at the time of service or claim."],
+  "Commercial RO": ["Warranty covers manufacturing defects in electronic and pump components only.","Excludes filters, membranes, RO housings and other consumables.","Does not cover physical damage or issues from unauthorised repair.","Damage from voltage fluctuation or unstable water supply is not covered.","Present this card at the time of service or claim."],
+  "Spares": ["Warranty applies to the specific spare part listed on this card only.","Does not cover damage from incorrect installation by unauthorised persons.","Physical damage after installation is not covered.","Present this card and the original invoice for any claim."],
+  "AMC": ["This AMC covers all parts and components of the RO system listed on this card.","Includes scheduled servicing for the contract period as per the agreed visit schedule.","Does not cover damage from unauthorised repair, tampering, or unstable power/water supply.","AMC amount once paid is non-refundable.","Present this card at the time of each scheduled or on-call service visit."]
+};
+
+let state = { category: "Domestic RO" };
+let tncEdited = false;
+let accessToken = null;
+let driveFileId = null;
+let tokenClient = null;
+let userEmail = null;
+
+const $ = id => document.getElementById(id);
+
+// ---------- local storage (device cache) ----------
+function loadLocal(){
+  try{ return JSON.parse(localStorage.getItem('bat_warranty_log') || '{"records":{}}'); }
+  catch(e){ return {records:{}}; }
+}
+function saveLocal(data){
+  localStorage.setItem('bat_warranty_log', JSON.stringify(data));
+}
+
+// ---------- form / card rendering ----------
+function populateModelField(){
+  const isCommercial = state.category === "Commercial RO";
+  $("modelText").style.display = isCommercial ? "none" : "block";
+  $("modelSelect").style.display = isCommercial ? "block" : "none";
+  if(isCommercial){
+    $("modelSelect").innerHTML = "";
+    COMMERCIAL_MODELS.forEach(m=>{ const o=document.createElement("option"); o.value=m; o.textContent=m; $("modelSelect").appendChild(o); });
+  }
+  const labels = {"Domestic RO":"Model","Commercial RO":"Model","Spares":"Spare part name","AMC":"RO model under contract"};
+  const placeholders = {"Domestic RO":"e.g. Orca, Dolphin, Iris, Canix","Spares":"e.g. Membrane, Pump, Filter set","AMC":"e.g. Orca / 50 LPH commercial unit"};
+  $("modelLabel").textContent = labels[state.category];
+  if(!isCommercial) $("modelText").placeholder = placeholders[state.category] || "";
+}
+function populateDuration(){
+  const sel = $("duration"); sel.innerHTML = "";
+  DURATIONS[state.category].forEach(([m,l])=>{ const o=document.createElement("option"); o.value=m; o.textContent=l; sel.appendChild(o); });
+}
+function applyLabels(){
+  const isAmc = state.category === "AMC";
+  $("invoiceLabel").textContent = isAmc ? "Contract no." : "Invoice / Bill no.";
+  $("dateLabel").textContent = isAmc ? "AMC start date" : "Purchase / installation date";
+  $("durationLabel").textContent = isAmc ? "AMC duration" : "Warranty period";
+  $("serialLabel").textContent = isAmc ? "RO unit serial no." : "Serial number";
+  $("amcAmountField").style.display = isAmc ? "block" : "none";
+  $("c-model-label").textContent = $("modelLabel").textContent;
+  $("c-invoice-label").textContent = $("invoiceLabel").textContent;
+  $("c-date-label").textContent = $("dateLabel").textContent;
+  $("c-serial-label").textContent = $("serialLabel").textContent;
+  $("c-kicker").textContent = isAmc ? "ANNUAL MAINTENANCE" : "CERTIFICATE OF";
+  $("c-title").textContent = isAmc ? "Service Contract" : "Warranty";
+  $("c-seal-text").textContent = isAmc ? "ALL PARTS COVERED" : "GENUINE PART GUARANTEE";
+}
+function refreshTncDefault(){ if(!tncEdited){ $("tnc").value = DEFAULT_TNC[state.category].join("\n"); } }
+function fmtDate(iso){ if(!iso) return "—"; const d=new Date(iso+"T00:00:00"); return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+function addMonths(iso, months){ if(!iso) return ""; const d=new Date(iso+"T00:00:00"); d.setMonth(d.getMonth()+Number(months)); return d.toISOString().slice(0,10); }
+function catCode(cat){ return {"Domestic RO":"D","Commercial RO":"C","Spares":"S","AMC":"A"}[cat] || "X"; }
+function genSerial(){ const now=new Date(); const ym=String(now.getFullYear()).slice(2)+String(now.getMonth()+1).padStart(2,"0"); const rand=Math.floor(1000+Math.random()*9000); return `BAT-${catCode(state.category)}-${ym}-${rand}`; }
+function currentModel(){ return state.category === "Commercial RO" ? $("modelSelect").value : $("modelText").value.trim(); }
+
+function currentData(){
+  const purchaseDate = $("purchaseDate").value;
+  const months = $("duration").value;
+  return {
+    category: state.category, model: currentModel(), customerName: $("customerName").value.trim(),
+    phone: $("phone").value.trim(), invoiceNo: $("invoiceNo").value.trim(), address: $("address").value.trim(),
+    purchaseDate, durationMonths: months, expiryDate: addMonths(purchaseDate, months),
+    serial: $("serial").value.trim(), amcAmount: $("amcAmount").value.trim(), dealer: $("dealer").value.trim(),
+    tnc: $("tnc").value, savedAt: new Date().toISOString()
+  };
+}
+
+function renderCard(){
+  const d = currentData();
+  $("c-name").textContent = d.customerName || "—";
+  $("c-phone").textContent = d.phone || "—";
+  $("c-address").textContent = d.address || "—";
+  $("c-cat").textContent = d.category;
+  $("c-model").textContent = d.model || "—";
+  $("c-serial").textContent = d.serial || "—";
+  $("c-invoice").textContent = d.invoiceNo || "—";
+  $("c-pdate").textContent = fmtDate(d.purchaseDate);
+  $("c-start").textContent = fmtDate(d.purchaseDate);
+  $("c-end").textContent = fmtDate(d.expiryDate);
+  $("c-dealer").textContent = d.dealer || "Bharat Aqua Tech";
+  const isAmc = d.category === "AMC";
+  $("c-amc-row").style.display = isAmc ? "flex" : "none";
+  if(isAmc){ $("c-amc-amount").textContent = d.amcAmount ? `₹${d.amcAmount}` : "—"; }
+  const list = $("c-tnc-list"); list.innerHTML = "";
+  d.tnc.split("\n").map(l=>l.trim()).filter(Boolean).forEach(line=>{ const li=document.createElement("li"); li.textContent=line; list.appendChild(li); });
+}
+
+function setStatus(msg, isErr){
+  const el = $("status"); el.textContent = msg; el.style.color = isErr ? "#B3452C" : "#0E5C93";
+  if(!isErr) setTimeout(()=>{ if(el.textContent===msg) el.textContent=""; }, 3500);
+}
+
+// ---------- save + render log ----------
+async function saveCard(){
+  const d = currentData();
+  if(!d.customerName || !d.serial || !d.purchaseDate){
+    setStatus("Add at least customer name, serial number and date before saving.", true);
+    return;
+  }
+  const local = loadLocal();
+  local.records[d.serial] = d;
+  saveLocal(local);
+  renderLog();
+  setStatus(`Saved — card ${d.serial} added to log.`);
+  if(accessToken){ await pushToDrive(local); }
+}
+
+function renderLog(filter){
+  const body = $("logBody"); const emptyEl = $("logEmpty"); body.innerHTML = "";
+  const local = loadLocal();
+  const records = Object.values(local.records || {}).sort((a,b)=> (b.savedAt||"").localeCompare(a.savedAt||""));
+  const q = (filter||"").toLowerCase();
+  const filtered = q ? records.filter(r => (r.customerName||"").toLowerCase().includes(q) || (r.serial||"").toLowerCase().includes(q)) : records;
+  if(filtered.length === 0){ emptyEl.style.display="block"; emptyEl.textContent = records.length===0 ? "No cards saved yet — fill the form and tap \"Save to log\"." : "No matches."; return; }
+  emptyEl.style.display = "none";
+  const tagClass = {"Domestic RO":"dom","Commercial RO":"com","Spares":"spa","AMC":"amc"};
+  filtered.forEach(r=>{
+    const tr = document.createElement("tr"); tr.className = "rowbtn";
+    const cls = tagClass[r.category] || "dom";
+    tr.innerHTML = `<td class="mono">${r.serial}</td><td>${r.customerName||"—"}</td><td><span class="tag ${cls}">${r.category}</span> ${r.model||""}</td><td>${fmtDate(r.purchaseDate)}</td><td>${fmtDate(r.expiryDate)}</td>`;
+    tr.addEventListener("click", ()=> loadIntoForm(r));
+    body.appendChild(tr);
+  });
+}
+
+function loadIntoForm(r){
+  state.category = r.category;
+  document.querySelectorAll("#categorySeg button").forEach(b=> b.classList.toggle("active", b.dataset.cat === r.category));
+  populateModelField(); populateDuration(); applyLabels();
+  if(r.category === "Commercial RO"){ $("modelSelect").value = r.model; } else { $("modelText").value = r.model; }
+  $("customerName").value = r.customerName; $("phone").value = r.phone; $("invoiceNo").value = r.invoiceNo;
+  $("address").value = r.address; $("purchaseDate").value = r.purchaseDate; $("duration").value = r.durationMonths;
+  $("serial").value = r.serial; $("amcAmount").value = r.amcAmount || ""; $("dealer").value = r.dealer;
+  tncEdited = true; $("tnc").value = r.tnc || DEFAULT_TNC[r.category].join("\n");
+  renderCard(); setStatus(`Loaded card ${r.serial}.`); window.scrollTo({top:0, behavior:"smooth"});
+}
+
+// ---------- Google Drive sync ----------
+function updateSyncUI(){
+  const dot = $("syncDot"); const label = $("syncLabel"); const btn = $("signBtn");
+  if(accessToken && userEmail){
+    dot.classList.add("on"); label.textContent = `Synced to Drive — ${userEmail}`;
+    btn.textContent = "Sign out"; btn.classList.add("signed");
+  }else{
+    dot.classList.remove("on"); label.textContent = "Not signed in — saving on this device only";
+    btn.textContent = "Sign in with Google"; btn.classList.remove("signed");
+  }
+}
+
+function driveHeaders(extra){
+  return Object.assign({ "Authorization": "Bearer " + accessToken }, extra || {});
+}
+
+async function findOrCreateDriveFile(){
+  const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name)`, { headers: driveHeaders() });
+  const data = await res.json();
+  if(data.files && data.files.length > 0){
+    return data.files[0].id;
+  }
+  // create new file
+  const metadata = { name: DRIVE_FILE_NAME, mimeType: "application/json" };
+  const boundary = "batwarrantyboundary";
+  const body =
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+    `--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify({records:{}})}\r\n--${boundary}--`;
+  const createRes = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id", {
+    method: "POST",
+    headers: driveHeaders({ "Content-Type": `multipart/related; boundary=${boundary}` }),
+    body
+  });
+  const created = await createRes.json();
+  return created.id;
+}
+
+async function pullFromDrive(){
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`, { headers: driveHeaders() });
+  if(!res.ok) return { records: {} };
+  try{ return await res.json(); }catch(e){ return { records: {} }; }
+}
+
+async function pushToDrive(data){
+  try{
+    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
+      method: "PATCH",
+      headers: driveHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(data)
+    });
+  }catch(e){ console.error("Drive push failed", e); setStatus("Saved locally, but Drive sync failed.", true); }
+}
+
+function mergeRecords(local, remote){
+  const merged = { records: Object.assign({}, remote.records || {}) };
+  for(const [serial, rec] of Object.entries(local.records || {})){
+    const existing = merged.records[serial];
+    if(!existing || (rec.savedAt||"") > (existing.savedAt||"")){
+      merged.records[serial] = rec;
+    }
+  }
+  return merged;
+}
+
+async function onSignedIn(){
+  try{
+    setStatus("Connecting to Drive…");
+    driveFileId = await findOrCreateDriveFile();
+    const remote = await pullFromDrive();
+    const local = loadLocal();
+    const merged = mergeRecords(local, remote);
+    saveLocal(merged);
+    await pushToDrive(merged);
+    renderLog();
+    setStatus("Synced with Google Drive.");
+  }catch(e){
+    console.error(e);
+    setStatus("Signed in, but Drive sync had a problem.", true);
+  }
+  updateSyncUI();
+}
+
+function initGoogle(){
+  const clientId = $("clientId").value.trim();
+  if(!clientId || !window.google) return;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: DRIVE_SCOPE,
+    callback: async (resp) => {
+      if(resp.error){ setStatus("Sign-in failed: " + resp.error, true); return; }
+      accessToken = resp.access_token;
+      try{
+        const infoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers: driveHeaders() });
+        const info = await infoRes.json();
+        userEmail = info.email || "Google account";
+      }catch(e){ userEmail = "Google account"; }
+      localStorage.setItem('bat_client_id', clientId);
+      updateSyncUI();
+      await onSignedIn();
+    }
+  });
+}
+
+$("signBtn").addEventListener("click", ()=>{
+  if(accessToken){
+    accessToken = null; userEmail = null; driveFileId = null;
+    updateSyncUI(); setStatus("Signed out. Cards remain saved on this device.");
+    return;
+  }
+  const clientId = $("clientId").value.trim();
+  if(!clientId){ setStatus("Paste your Google OAuth Client ID above first.", true); return; }
+  initGoogle();
+  if(tokenClient){ tokenClient.requestAccessToken(); }
+});
+
+$("clientId").addEventListener("change", ()=>{
+  localStorage.setItem('bat_client_id', $("clientId").value.trim());
+});
+
+// ---------- events ----------
+document.querySelectorAll("#categorySeg button").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll("#categorySeg button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    state.category = btn.dataset.cat;
+    populateModelField(); populateDuration(); applyLabels(); refreshTncDefault(); renderCard();
+  });
+});
+["customerName","phone","invoiceNo","address","purchaseDate","duration","serial","amcAmount","dealer","modelText","modelSelect"].forEach(id=>{
+  $(id).addEventListener("input", renderCard); $(id).addEventListener("change", renderCard);
+});
+$("tnc").addEventListener("input", ()=>{ tncEdited = true; renderCard(); });
+$("genSerial").addEventListener("click", ()=>{ $("serial").value = genSerial(); renderCard(); });
+$("saveBtn").addEventListener("click", saveCard);
+$("printBtn").addEventListener("click", ()=> window.print());
+$("search").addEventListener("input", (e)=> renderLog(e.target.value));
+
+// ---------- init ----------
+populateModelField(); populateDuration(); applyLabels(); refreshTncDefault();
+$("purchaseDate").valueAsDate = new Date();
+$("serial").value = genSerial();
+renderCard();
+renderLog();
+updateSyncUI();
+
+const savedClientId = localStorage.getItem('bat_client_id');
+if(savedClientId){ $("clientId").value = savedClientId; }
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+</script>
+</body>
+</html>
