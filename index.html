@@ -420,10 +420,16 @@ function driveHeaders(extra){
   return Object.assign({ "Authorization": "Bearer " + accessToken }, extra || {});
 }
 
+function driveErrorMessage(status, json){
+  const reason = json && json.error && (json.error.message || (json.error.errors && json.error.errors[0] && json.error.errors[0].reason));
+  return `Drive error ${status}${reason ? ": " + reason : ""}`;
+}
+
 async function findOrCreateDriveFile(){
   const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
   const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name)`, { headers: driveHeaders() });
-  const data = await res.json();
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok){ throw new Error(driveErrorMessage(res.status, data)); }
   if(data.files && data.files.length > 0){
     return data.files[0].id;
   }
@@ -438,24 +444,31 @@ async function findOrCreateDriveFile(){
     headers: driveHeaders({ "Content-Type": `multipart/related; boundary=${boundary}` }),
     body
   });
-  const created = await createRes.json();
+  const created = await createRes.json().catch(()=>({}));
+  if(!createRes.ok || !created.id){ throw new Error(driveErrorMessage(createRes.status, created)); }
   return created.id;
 }
 
 async function pullFromDrive(){
   const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`, { headers: driveHeaders() });
-  if(!res.ok) return { records: {} };
+  if(!res.ok){
+    const data = await res.json().catch(()=>({}));
+    throw new Error(driveErrorMessage(res.status, data));
+  }
   try{ return await res.json(); }catch(e){ return { records: {} }; }
 }
 
 async function pushToDrive(data){
-  try{
-    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
-      method: "PATCH",
-      headers: driveHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(data)
-    });
-  }catch(e){ console.error("Drive push failed", e); setStatus("Saved locally, but Drive sync failed.", true); }
+  const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
+    method: "PATCH",
+    headers: driveHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(data)
+  });
+  if(!res.ok){
+    const errJson = await res.json().catch(()=>({}));
+    console.error("Drive push failed", errJson);
+    setStatus(driveErrorMessage(res.status, errJson) + " — saved locally only.", true);
+  }
 }
 
 function mergeRecords(local, remote){
@@ -482,7 +495,7 @@ async function onSignedIn(){
     setStatus("Synced with Google Drive.");
   }catch(e){
     console.error(e);
-    setStatus("Signed in, but Drive sync had a problem.", true);
+    setStatus("Signed in, but Drive sync had a problem: " + e.message, true);
   }
   updateSyncUI();
 }
