@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root{
     --ink:#00173A; --teal:#0E5C93; --aqua:#1183C9; --brass:#C9A227;
@@ -57,6 +58,9 @@
   .btn{flex:1; padding:11px 12px; border-radius:4px; font-size:13.5px; font-weight:600; cursor:pointer; border:none;}
   .btn-primary{background:var(--ink); color:#fff;} .btn-primary:hover{background:var(--teal);}
   .btn-ghost{background:#fff; border:1px solid var(--line); color:var(--ink);} .btn-ghost:hover{border-color:var(--ink);}
+  .btn-whatsapp{width:100%; background:#25D366; color:#fff;}
+  .btn-whatsapp:hover{background:#1EBE57;}
+  .btn-whatsapp:disabled{background:#A8DDBB; cursor:wait;}
   .status{margin-top:10px; font-size:12px; color:var(--teal); min-height:16px;}
   .hint{font-size:10.5px; color:var(--muted); margin-top:4px; line-height:1.4;}
   .divider{border:none; border-top:1px solid var(--line); margin:16px 0;}
@@ -197,6 +201,9 @@
     <div class="actions">
       <button class="btn btn-primary" id="saveBtn">Save to log</button>
       <button class="btn btn-ghost" id="printBtn">Print card</button>
+    </div>
+    <div class="actions">
+      <button class="btn btn-whatsapp" id="waBtn">Share to WhatsApp</button>
     </div>
     <div class="status" id="status"></div>
   </div>
@@ -585,8 +592,55 @@ document.querySelectorAll("#categorySeg button").forEach(btn=>{
 });
 $("tnc").addEventListener("input", ()=>{ tncEdited = true; renderCard(); });
 $("genSerial").addEventListener("click", ()=>{ $("serial").value = genSerial(); renderCard(); });
+function cleanPhoneForWhatsApp(raw){
+  let digits = (raw||"").replace(/\D/g,"");
+  if(digits.length === 10) digits = "91" + digits;
+  else if(digits.length === 11 && digits.startsWith("0")) digits = "91" + digits.slice(1);
+  return digits;
+}
+
+async function shareToWhatsApp(){
+  const d = currentData();
+  const phoneDigits = cleanPhoneForWhatsApp(d.phone);
+  if(phoneDigits.length < 12){
+    setStatus("Enter a valid 10-digit phone number to share via WhatsApp.", true);
+    return;
+  }
+
+  const btn = $("waBtn");
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Preparing card image…";
+
+  const isAmc = d.category === "AMC";
+  const label = isAmc ? "AMC Service Contract" : "Warranty Card";
+  const message = `Hi ${d.customerName || ""}, here is your ${label} from Bharat Aqua Tech.\nModel: ${d.model || "-"}\nSerial: ${d.serial || "-"}\nValid till: ${fmtDate(d.expiryDate)}\n\n(Card image downloaded on this device — please attach it in this chat.) Please save this for future service/claims.`;
+
+  try{
+    const canvas = await html2canvas($("card"), { scale: 2, backgroundColor: "#ffffff" });
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${d.serial || "warranty-card"}.png`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    window.open(`https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`, "_blank");
+    setStatus("Card image downloaded and WhatsApp chat opened — attach the image there.");
+  }catch(e){
+    console.error(e);
+    const fallbackMsg = message.replace("(Card image downloaded on this device — please attach it in this chat.) ", "");
+    window.open(`https://wa.me/${phoneDigits}?text=${encodeURIComponent(fallbackMsg)}`, "_blank");
+    setStatus("Couldn't generate the image, opened WhatsApp with a text message instead.", true);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+$("waBtn").addEventListener("click", shareToWhatsApp);
 $("saveBtn").addEventListener("click", saveCard);
 $("printBtn").addEventListener("click", ()=> window.print());
+
 $("search").addEventListener("input", (e)=> renderLog(e.target.value));
 
 // ---------- init ----------
