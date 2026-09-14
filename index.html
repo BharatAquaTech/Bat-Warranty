@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
   :root{
     --ink:#00173A; --teal:#0E5C93; --aqua:#1183C9; --brass:#C9A227;
@@ -193,9 +194,16 @@
     <hr class="divider">
 
     <div class="field">
-      <label>Terms &amp; conditions (one point per line — shown on the card)</label>
+      <label>T&amp;C Google Sheet link (published as CSV)</label>
+      <div class="inline-btn">
+        <input type="text" id="tncSheetUrl" placeholder="https://docs.google.com/.../pub?output=csv">
+        <button class="smallbtn" id="refreshTnc" type="button">Refresh</button>
+      </div>
+      <div class="hint">Sheet needs 2 columns: <b>Category</b>, <b>Point</b> — one row per T&amp;C line, category must match exactly (Domestic RO / Commercial RO / Spares / AMC). Publish the sheet to web as CSV and paste that link here. Update the sheet anytime — tap Refresh (or it auto-syncs on app open) and every new card picks it up, no re-typing.</div>
+    </div>
+    <div class="field">
+      <label>Terms &amp; conditions (used until a sheet is linked, or as manual override)</label>
       <textarea id="tnc" style="min-height:110px;"></textarea>
-      <div class="hint">Edit freely — this wording stays for every card until you change it.</div>
     </div>
 
     <div class="actions">
@@ -273,6 +281,50 @@ const DEFAULT_TNC = {
 
 let state = { category: "Domestic RO" };
 let tncEdited = false;
+let tncFromSheet = {};
+
+function loadTncCache(){
+  try{ return JSON.parse(localStorage.getItem('bat_tnc_cache') || '{}'); }catch(e){ return {}; }
+}
+function saveTncCache(data){ localStorage.setItem('bat_tnc_cache', JSON.stringify(data)); }
+
+function getTncLines(){
+  if(tncFromSheet[state.category] && tncFromSheet[state.category].length){
+    return tncFromSheet[state.category];
+  }
+  return DEFAULT_TNC[state.category];
+}
+
+async function fetchTncFromSheet(silent){
+  const url = $("tncSheetUrl").value.trim();
+  if(!url){ if(!silent) setStatus("Paste your published Google Sheet CSV link first.", true); return; }
+  try{
+    const res = await fetch(url);
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const text = await res.text();
+    const parsed = Papa.parse(text.trim(), { header:false });
+    const grouped = {};
+    (parsed.data || []).forEach(row=>{
+      if(!row || row.length < 2) return;
+      const cat = (row[0]||"").trim();
+      const point = (row[1]||"").trim();
+      if(!cat || !point) return;
+      if(cat.toLowerCase() === "category") return; // skip header row
+      if(!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(point);
+    });
+    if(Object.keys(grouped).length === 0){ throw new Error("No rows found — check the sheet has Category, Point columns."); }
+    tncFromSheet = grouped;
+    saveTncCache(grouped);
+    localStorage.setItem('bat_tnc_sheet_url', url);
+    refreshTncDefault(true);
+    renderCard();
+    if(!silent) setStatus("T&C refreshed from the Google Sheet.");
+  }catch(e){
+    console.error(e);
+    if(!silent) setStatus("Couldn't read the sheet — make sure it's published to web as CSV.", true);
+  }
+}
 let accessToken = null;
 let driveFileId = null;
 let tokenClient = null;
@@ -322,7 +374,7 @@ function applyLabels(){
   $("c-title").textContent = isAmc ? "Service Contract" : "Warranty";
   $("c-seal-text").textContent = isAmc ? "ALL PARTS COVERED" : "GENUINE PART GUARANTEE";
 }
-function refreshTncDefault(){ if(!tncEdited){ $("tnc").value = DEFAULT_TNC[state.category].join("\n"); } }
+function refreshTncDefault(force){ if(!tncEdited || force){ $("tnc").value = getTncLines().join("\n"); } }
 function fmtDate(iso){ if(!iso) return "—"; const d=new Date(iso+"T00:00:00"); return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
 function addMonths(iso, months){ if(!iso) return ""; const d=new Date(iso+"T00:00:00"); d.setMonth(d.getMonth()+Number(months)); return d.toISOString().slice(0,10); }
 function catCode(cat){ return {"Domestic RO":"D","Commercial RO":"C","Spares":"S","AMC":"A"}[cat] || "X"; }
@@ -591,6 +643,7 @@ document.querySelectorAll("#categorySeg button").forEach(btn=>{
   $(id).addEventListener("input", renderCard); $(id).addEventListener("change", renderCard);
 });
 $("tnc").addEventListener("input", ()=>{ tncEdited = true; renderCard(); });
+$("refreshTnc").addEventListener("click", ()=> fetchTncFromSheet(false));
 $("genSerial").addEventListener("click", ()=>{ $("serial").value = genSerial(); renderCard(); });
 function cleanPhoneForWhatsApp(raw){
   let digits = (raw||"").replace(/\D/g,"");
@@ -644,12 +697,18 @@ $("printBtn").addEventListener("click", ()=> window.print());
 $("search").addEventListener("input", (e)=> renderLog(e.target.value));
 
 // ---------- init ----------
+tncFromSheet = loadTncCache();
+const savedTncUrl = localStorage.getItem('bat_tnc_sheet_url');
+if(savedTncUrl){ $("tncSheetUrl").value = savedTncUrl; }
+
 populateModelField(); populateDuration(); applyLabels(); refreshTncDefault();
 $("purchaseDate").valueAsDate = new Date();
 $("serial").value = genSerial();
 renderCard();
 renderLog();
 updateSyncUI();
+
+if(savedTncUrl){ fetchTncFromSheet(true); }
 
 const savedClientId = localStorage.getItem('bat_client_id');
 if(savedClientId){ $("clientId").value = savedClientId; }
