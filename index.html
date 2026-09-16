@@ -125,10 +125,16 @@
   .log-head h2{font-size:14px; font-weight:600;}
   .log-search{padding:10px 10px; min-height:40px; border:1px solid var(--line); border-radius:4px; font-size:14px; width:180px; max-width:100%;}
   .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
-  table{width:100%; min-width:480px; border-collapse:collapse; font-size:12px;}
+  table{width:100%; min-width:560px; border-collapse:collapse; font-size:12px;}
   th{text-align:left; font-size:10px; color:var(--muted); font-weight:600; border-bottom:1px solid var(--line); padding:6px 6px;}
   td{padding:7px 6px; border-bottom:1px solid #EFECE4;}
-  tr.rowbtn{cursor:pointer;} tr.rowbtn:hover{background:var(--paper);}
+  tr:hover{background:var(--paper);}
+  .row-actions{white-space:nowrap;}
+  .row-btn{padding:6px 10px; min-height:34px; border-radius:4px; font-size:11.5px; font-weight:600; cursor:pointer; border:1px solid var(--line); background:#fff; margin-right:6px;}
+  .row-btn.edit-btn{color:var(--teal); border-color:var(--teal);}
+  .row-btn.edit-btn:hover{background:var(--teal); color:#fff;}
+  .row-btn.del-btn{color:var(--danger); border-color:var(--danger);}
+  .row-btn.del-btn:hover{background:var(--danger); color:#fff;}
   .empty{color:var(--muted); font-size:12.5px; padding:10px 4px;}
   .tag{display:inline-block; font-size:9.5px; font-weight:600; padding:2px 7px; border-radius:10px;}
   .tag.dom{background:#E6F2F2; color:var(--teal);} .tag.com{background:#F3EAD3; color:#8A6A16;}
@@ -277,7 +283,7 @@
     <div class="log-panel">
       <div class="log-head"><h2>Issued cards</h2><input class="log-search" id="search" placeholder="Search name or serial…"></div>
       <div class="table-scroll">
-        <table><thead><tr><th>Serial</th><th>Customer</th><th>Category / model</th><th>Issued</th><th>Expires</th></tr></thead><tbody id="logBody"></tbody></table>
+        <table><thead><tr><th>Serial</th><th>Customer</th><th>Category / model</th><th>Issued</th><th>Expires</th><th>Actions</th></tr></thead><tbody id="logBody"></tbody></table>
       </div>
       <div class="empty" id="logEmpty" style="display:none;"></div>
     </div>
@@ -458,13 +464,35 @@ function renderLog(filter){
   emptyEl.style.display = "none";
   const tagClass = {"Domestic RO":"dom","Commercial RO":"com","Spares":"spa","AMC":"amc"};
   filtered.forEach(r=>{
-    const tr = document.createElement("tr"); tr.className = "rowbtn";
+    const tr = document.createElement("tr");
     const cls = tagClass[r.category] || "dom";
-    tr.innerHTML = `<td class="mono">${r.serial}</td><td>${r.customerName||"—"}</td><td><span class="tag ${cls}">${r.category}</span> ${r.model||""}</td><td>${fmtDate(r.purchaseDate)}</td><td>${fmtDate(r.expiryDate)}</td>`;
-    tr.addEventListener("click", ()=> loadIntoForm(r));
+    tr.innerHTML = `<td class="mono">${r.serial}</td><td>${r.customerName||"—"}</td><td><span class="tag ${cls}">${r.category}</span> ${r.model||""}</td><td>${fmtDate(r.purchaseDate)}</td><td>${fmtDate(r.expiryDate)}</td>` +
+      `<td class="row-actions"><button class="row-btn edit-btn" data-serial="${r.serial}">Edit</button><button class="row-btn del-btn" data-serial="${r.serial}">Delete</button></td>`;
     body.appendChild(tr);
   });
 }
+
+async function deleteCard(serial){
+  if(!confirm(`Delete warranty card ${serial}? This cannot be undone.`)) return;
+  const local = loadLocal();
+  delete local.records[serial];
+  saveLocal(local);
+  renderLog($("search").value);
+  setStatus(`Deleted card ${serial}.`);
+  if(accessToken){ await pushToDrive(local); }
+}
+
+$("logBody").addEventListener("click", (e)=>{
+  const editBtn = e.target.closest(".edit-btn");
+  const delBtn = e.target.closest(".del-btn");
+  if(editBtn){
+    const local = loadLocal();
+    const r = local.records[editBtn.dataset.serial];
+    if(r) loadIntoForm(r);
+  }else if(delBtn){
+    deleteCard(delBtn.dataset.serial);
+  }
+});
 
 function loadIntoForm(r){
   state.category = r.category;
