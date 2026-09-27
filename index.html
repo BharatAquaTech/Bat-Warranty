@@ -710,7 +710,7 @@ async function shareToWhatsApp(){
 
   const isAmc = d.category === "AMC";
   const label = isAmc ? "AMC Service Contract" : "Warranty Card";
-  const message = `Hi ${d.customerName || ""}, here is your ${label} from Bharat Aqua Tech.\nModel: ${d.model || "-"}\nSerial: ${d.serial || "-"}\nValid till: ${fmtDate(d.expiryDate)}\n\n(Card image downloaded on this device — please attach it in this chat.) Please save this for future service/claims.`;
+  const message = `Hi ${d.customerName || ""}, here is your ${label} from Bharat Aqua Tech.\nModel: ${d.model || "-"}\nSerial: ${d.serial || "-"}\nValid till: ${fmtDate(d.expiryDate)}\n\n Please save this for future service/claims.`;
 
   try{
     const canvas = await html2canvas($("card"), { scale: 2, backgroundColor: "#ffffff" });
