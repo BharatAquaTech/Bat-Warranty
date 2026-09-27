@@ -710,7 +710,7 @@ async function shareToWhatsApp(){
 
   const isAmc = d.category === "AMC";
   const label = isAmc ? "AMC Service Contract" : "Warranty Card";
-  const message = `Hi ${d.customerName || ""}, here is your ${label} from Bharat Aqua Tech.\nModel: ${d.model || "-"}\nSerial: ${d.serial || "-"}\nValid till: ${fmtDate(d.expiryDate)}\n\n Please save this for future service/claims.`;
+  const message = `Hi ${d.customerName || ""}, here is your ${label} from Bharat Aqua Tech.\nModel: ${d.model || "-"}\nSerial: ${d.serial || "-"}\nValid till: ${fmtDate(d.expiryDate)}\n\nPlease save this for future service/claims.`;
 
   try{
     const canvas = await html2canvas($("card"), { scale: 2, backgroundColor: "#ffffff" });
@@ -724,8 +724,7 @@ async function shareToWhatsApp(){
     setStatus("Card image downloaded and WhatsApp chat opened — attach the image there.");
   }catch(e){
     console.error(e);
-    const fallbackMsg = message.replace("(Card image downloaded on this device — please attach it in this chat.) ", "");
-    window.open(`https://wa.me/${phoneDigits}?text=${encodeURIComponent(fallbackMsg)}`, "_blank");
+    window.open(`https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`, "_blank");
     setStatus("Couldn't generate the image, opened WhatsApp with a text message instead.", true);
   }finally{
     btn.disabled = false;
